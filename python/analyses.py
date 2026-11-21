@@ -71,7 +71,7 @@ def reference_value(request: dict, metric: str, steps: list, progress: Callable)
     # If not, we take a Python grid finer than all the points compared
     count = min(10000, maximum * 2)
     work["grid"]["steps"] = count
-    progress(f"Référence PYTHON — {count} pas")
+    progress(f"Python reference · {count} steps")
     report = calculator("python")(work)
     return {
         "value": metric_value(report, metric),
@@ -107,7 +107,7 @@ def _convergence_rows(
     for engine in selected_engines(request):
         work = price_only(request, metric)
         for count in steps:
-            progress(f"{engine.upper()} — {count} pas")
+            progress(f"{engine.upper()} · {count} steps")
             work["grid"]["steps"] = count
             report = _grid_calculation(engine, work)
             value = metric_value(report, metric)
@@ -162,7 +162,7 @@ def benchmark(request: dict, progress: Callable) -> dict:
         work = price_only(request)
         for count in automatic_steps(request):
             work["grid"]["steps"] = count
-            progress(f"{engine.upper()} — {count} pas — 2 répétitions")
+            progress(f"{engine.upper()} · {count} steps · two runs")
             rows.append(_benchmark_point(engine, work))
     return {
         "rows": rows,
@@ -241,7 +241,7 @@ def greek_curve(request: dict, settings: dict, progress: Callable) -> dict:
     for engine in selected_engines(request):
         work = price_only(request, metric)
         for spot in spots:
-            progress(f"{engine.upper()} — spot {spot:g}")
+            progress(f"{engine.upper()} · spot {spot:g}")
             work["market"]["spot"] = spot
             report = calculator(engine)(work)
             rows.append({"engine": engine, "spot": spot, "value": metric_value(report, metric)})
