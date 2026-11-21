@@ -12,18 +12,40 @@ I started with a four-step American put so I could check each decision by hand. 
 
 ![Four-step American put in LatticeLab with share and option prices at all fifteen nodes](figures/american-put-tree.jpg)
 
-From €100 the first up move takes the share to **€111.93**, with a model probability of **47.50%**. The down move takes it to **€91.60**, with probability **52.50%**. These are the weights the model uses for pricing. The two paths up-then-down and down-then-up meet at the same node.
+I build each step around the share's forward value. Let $S$ be the current share price, $r$ the interest rate, $q$ the continuous dividend yield, $\sigma$ the volatility and $\Delta t$ the step length in years. For a binomial step with no cash dividend, I choose the larger solution $a>1$ below to match the one-step variance.
+
+```math
+F=S e^{(r-q)\Delta t}, \qquad a+a^{-1}=1+e^{\sigma^2\Delta t}
+```
+
+```math
+S_u=Fa,\qquad S_d=F/a,\qquad p_u=\frac{1}{1+a}
+```
+
+From €100, a quarter-year step gives **€111.93** with probability **47.50%** and **€91.60** with probability **52.50%**. Their probability-weighted mean is the forward value, €101.26. Up-then-down and down-then-up meet at the same node, so both paths use the same exercise decision. [Branch construction](python/engine/core/tree.py)
 
 | Decision | Share price | Exercise proceeds | Discounted value of waiting | Put value |
 | --- | ---: | ---: | ---: | ---: |
 | Today | €100.00 | €0.00 | €6.15 | €6.15 |
 | After two down moves | €83.91 | €16.09 | €15.39 | €16.09 |
 
-At expiry the put pays the positive part of the strike less the share price. At earlier nodes I discount the probability-weighted value of the two children and compare it with the immediate exercise proceeds. Applying that rule back to the root gives **€6.1520** on this deliberately coarse grid. To inspect the numbers in the app, open the example, choose **Tree**, click **Build tree**, then expand **Show nodes**. [Four-step put inputs](examples/american-put.json)
+At expiry the put pays $V_T=\max(K-S_T,0)$ for strike $K$. At every earlier node I compare the proceeds from exercising with the discounted value of its two children.
+
+```math
+C=e^{-r\Delta t}\bigl[p_u V_u+(1-p_u)V_d\bigr],\qquad V=\max(K-S,C)
+```
+
+After two down moves, exercising is worth **€0.70 more** than waiting. Today the opposite decision wins. Carrying the child values back to the root gives **€6.1520**. To follow the same calculation in the app, open the example, choose **Tree**, click **Build tree** and expand **Show nodes**. [Four-step put inputs](examples/american-put.json)
 
 ### What happens to the hedge as the share moves?
 
-For the European call I used 128 binomial steps. The Greeks view reprices the position after small changes in spot. Expanding **Delta** repeats that calculation at nine share prices while keeping the strike, expiry, rate and volatility fixed.
+For the European call I used 128 binomial steps. To estimate delta, the **Greeks** view prices the same contract twice, shifting the spot by $h$ in each direction.
+
+```math
+\Delta(S)\approx\frac{V(S+h)-V(S-h)}{2h}
+```
+
+At a spot of €100 the default bump is €2. The call is worth €9.21644 at €98 and €11.74949 at €102. Dividing the difference by €4 gives **0.6333 shares**. Expanding **Delta** repeats the calculation across nine spots with the strike, expiry, rate and volatility fixed. [Finite-difference calculation](python/engine/derivatives.py)
 
 ![Call delta by share price in the running Python application](figures/call-delta.jpg)
 
