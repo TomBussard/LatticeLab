@@ -17,7 +17,7 @@ def calculator(engine: str) -> Callable:
     elif engine == "vba":
         from excel_bridge import calculate
     else:
-        raise ValueError("Moteur inconnu")
+        raise ValueError("Unknown engine")
     return calculate
 
 
@@ -25,7 +25,7 @@ def selected_engines(request: dict) -> tuple:
     """The same order is kept for tables and comparison curves"""
     engine = request.get("engine", "python")
     if engine not in ("python", "vba", "both"):
-        raise ValueError("Choisir Python, VBA ou les deux moteurs")
+        raise ValueError("Choose Python, VBA or both engines")
     return ENGINES if engine == "both" else (engine,)
 
 
@@ -33,7 +33,7 @@ def run_engines(request: dict, progress: Callable) -> dict:
     """The results are calculated with each selected engine"""
     results = {}
     for engine in selected_engines(request):
-        progress("Calcul " + engine.upper())
+        progress("Running " + engine.upper())
         results[engine] = calculator(engine)(request)
     return results
 
@@ -45,7 +45,7 @@ def metric_value(report: dict, metric: str) -> float:
     row = report["greeks"].get(metric, {})
     value = row.get("value")
     if value is None or not math.isfinite(value):
-        raise ValueError(row.get("warning") or f"Le grec {metric} est indisponible")
+        raise ValueError(row.get("warning") or f"{metric} is unavailable")
     return value
 
 
@@ -63,11 +63,11 @@ def reference_value(request: dict, metric: str, steps: list, progress: Callable)
     work = price_only(request, metric)
     try:
         value = metric_value(black_scholes_reference(work), metric)
-        return {"value": value, "label": "Black–Scholes analytique", "empirical": False}
+        return {"value": value, "label": "Black-Scholes", "empirical": False}
     except ValueError:
         maximum = max(steps)
         if maximum >= 10000:
-            raise ValueError("Choisir moins de 10 000 pas pour comparer avec un arbre plus précis")
+            raise ValueError("Use fewer than 10,000 steps to compare with a finer reference tree")
     # If not, we take a Python grid finer than all the points compared
     count = min(10000, maximum * 2)
     work["grid"]["steps"] = count
@@ -75,7 +75,7 @@ def reference_value(request: dict, metric: str, steps: list, progress: Callable)
     report = calculator("python")(work)
     return {
         "value": metric_value(report, metric),
-        "label": f"Arbre PYTHON à {count} pas",
+        "label": f"Python tree with {count} steps",
         "empirical": True,
         "steps": count,
     }
@@ -83,9 +83,9 @@ def reference_value(request: dict, metric: str, steps: list, progress: Callable)
 
 def convergence(request: dict, settings: dict, progress: Callable) -> dict:
     """Measure grid convergence while holding the contract and pruning threshold fixed."""
-    tolerance = number(settings.get("tolerance", 0.001), "La tolérance")
+    tolerance = number(settings.get("tolerance", 0.001), "Tolerance")
     if tolerance <= 0:
-        raise ValueError("La tolérance doit être strictement positive")
+        raise ValueError("Tolerance must be positive")
     steps = automatic_steps(request)
     metric = settings.get("metric", "price")
     reference = reference_value(request, metric, steps, progress)
@@ -95,7 +95,7 @@ def convergence(request: dict, settings: dict, progress: Callable) -> dict:
         "reference": reference,
         "tolerance": tolerance,
         "thresholds": tolerance_results(rows, tolerance),
-        "note": "La précision concerne les nombres de pas testés ; la convergence peut osciller",
+        "note": "The tolerance applies to the tested grids. Convergence can oscillate.",
     }
 
 
@@ -134,7 +134,7 @@ def _grid_calculation(engine: str, request: dict) -> dict:
     except (ValueError, RuntimeError) as error:
         grid = request["grid"]
         raise ValueError(
-            f"{engine.upper()}, {grid['steps']} pas, pruning {grid['pruning']:g} : {error}"
+            f"{engine.upper()}, {grid['steps']} steps, pruning {grid['pruning']:g} : {error}"
         ) from error
 
 
@@ -167,9 +167,9 @@ def benchmark(request: dict, progress: Callable) -> dict:
     return {
         "rows": rows,
         "repeats": 2,
-        "note": "Chaque instrument est construit et valorisé séparément dans les deux moteurs, sans cache ; "
-        "médianes des sommes par position, calcul seul = construction + remontée ; "
-        "démarrage Excel et aller-retour mesurés séparément",
+        "note": "Both engines build and price each leg separately. "
+        "Figures are position-level medians. Engine time includes construction and backward induction. "
+        "Excel startup and round-trip times are shown separately.",
     }
 
 
@@ -204,11 +204,11 @@ def tree_view(request: dict, progress: Callable) -> dict:
     """The detail is limited to a small tree legible in the browser"""
     results = {}
     if request["grid"]["steps"] > 12:
-        raise ValueError("La visualisation détaillée est limitée à 12 pas")
+        raise ValueError("The detailed tree supports up to 12 steps")
     request = copy.deepcopy(request)
     request["legs"] = request["legs"][:1]
     for engine in selected_engines(request):
-        progress("Construction des nœuds " + engine.upper())
+        progress("Building nodes for " + engine.upper())
         if engine == "python":
             from engine.pricing import export_tree
         else:
@@ -219,9 +219,9 @@ def tree_view(request: dict, progress: Callable) -> dict:
 
 def automatic_steps(request: dict) -> list:
     """The points of the graphs are selected from the number of steps requested"""
-    maximum = number(request["grid"]["steps"], "Le nombre de pas")
+    maximum = number(request["grid"]["steps"], "Step count")
     if not 1 <= maximum <= 10000 or maximum != int(maximum):
-        raise ValueError("Choisir un nombre entier de pas entre 1 et 10 000")
+        raise ValueError("Use a whole number of steps from 1 to 10,000")
     return sorted(
         set(max(1, round(maximum * ratio)) for ratio in (0.0625, 0.125, 0.25, 0.5, 0.75, 1))
     )
@@ -233,7 +233,7 @@ def greek_curve(request: dict, settings: dict, progress: Callable) -> dict:
 
     metric = settings.get("metric")
     if metric not in GREEKS:
-        raise ValueError("Choisir un grec disponible")
+        raise ValueError("Choose an available Greek")
     request = normalize_request(request)
     center = request["market"]["spot"]
     spots = [center * (0.8 + index * 0.05) for index in range(9)]
@@ -261,5 +261,5 @@ def execute(payload: dict, progress: Callable) -> dict:
         return {"action": action, **benchmark(request, progress)}
     functions = {"convergence": convergence, "curve": greek_curve}
     if action not in functions:
-        raise ValueError("Analyse inconnue")
+        raise ValueError("Unknown analysis")
     return {"action": action, **functions[action](request, settings, progress)}

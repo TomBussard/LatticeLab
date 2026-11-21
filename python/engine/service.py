@@ -11,17 +11,17 @@ def request_warnings(request: Request) -> list[str]:
     warnings = []
     if request["market"]["dividend_date"] and request["market"]["dividend"] == 0:
         warnings.append(
-            "Aucun dividende futur n'est appliqué ; le spot est supposé observé après les détachements passés"
+            "No future cash dividend is applied. The spot accounts for past ex-dividend dates."
         )
     if request["grid"]["pruning"] and request["grid"]["mode"] == "binomial":
-        warnings.append("Le pruning du modèle s'applique uniquement au trinomial")
+        warnings.append("Pruning applies only to the trinomial tree")
     if any(leg["kind"].startswith("digital") for leg in request["legs"]):
         warnings.append(
-            "Le payoff discontinu des digitales peut entraîner des oscillations de prix et de grecs"
+            "Digital payoffs can cause prices and Greeks to oscillate as the grid changes."
         )
     if any(leg["_maturity"] == 0 for leg in request["legs"]):
         warnings.append(
-            "À l'échéance, les différences finies du payoff ne définissent pas un grec au point de discontinuité"
+            "At expiry the payoff has no derivative at a discontinuity."
         )
     for leg in request["legs"]:
         if leg["kind"] == "one_touch_up":
@@ -29,7 +29,7 @@ def request_warnings(request: Request) -> list[str]:
     dividend_time = request["market"]["_dividend_time"]
     if dividend_time and 2 * request["bumps"]["days"] / request["day_basis"] >= dividend_time:
         warnings.append(
-            "La bosse de temps franchit le dividende : thêta et charm incluent ce changement de calendrier"
+            "The time bump crosses the dividend date, which affects theta and charm."
         )
     return list(dict.fromkeys(warnings))
 
@@ -37,12 +37,12 @@ def request_warnings(request: Request) -> list[str]:
 def one_touch_warning(leg: Request) -> str:
     """How the barrier is observed and when payment is discounted"""
     if leg.get("_touch_settled", False):
-        return "One-touch touché à la valorisation : paiement immédiat acquis, état conservé sous les bosses, grecs nuls"
+        return "A barrier touched at valuation pays immediately. Bumped scenarios preserve that state and the Greeks are zero."
     if leg["monitoring"] == "grid":
-        return "One-touch observé aux dates de l'arbre, paiement au premier nœud touché"
+        return "The barrier is checked on tree dates and pays at the first node that reaches it."
     return (
-        "One-touch : observation continue approchée par pont brownien, paiement au milieu du pas de franchissement ; "
-        "le passage d'un dividende est approché et doit faire l'objet d'un contrôle de convergence"
+        "A Brownian bridge approximates continuous barrier monitoring, with payment halfway through the crossing step. "
+        "Check grid convergence when a step includes a cash dividend."
     )
 
 
@@ -51,15 +51,15 @@ def conventions(request: Request) -> Request:
     return {
         "currency": "EUR",
         "day_count": f"ACT/{request['day_basis']}",
-        "rates": "Taux annuels continus",
-        "volatility": "Volatilité annuelle en décimal",
-        "dividend": "Un dividende fixe daté, distinct du rendement continu",
-        "greeks": "Dérivées de la position totale avec les quantités signées et les multiplicateurs",
-        "digital_boundary": "Digitale call : S >= K ; digitale put : S < K ; one-touch : S >= H",
-        "touch_settlement": "Un one-touch touché à la valorisation est un paiement immédiat acquis, sans risque résiduel",
-        "vega_rho_vanna": "Par point de pourcentage",
-        "volga": "Par carré de point de volatilité",
-        "theta_charm": "Par jour écoulé, spot inchangé et dates d'échéance et de dividende fixes",
+        "rates": "Continuously compounded annual rates",
+        "volatility": "Annualised volatility as a decimal",
+        "dividend": "One dated cash dividend and a separate continuous dividend yield",
+        "greeks": "Sensitivities of the entire position including signed quantities and multipliers",
+        "digital_boundary": "Digital call at S >= K, digital put at S < K, up one-touch at S >= H",
+        "touch_settlement": "A barrier already touched at valuation pays immediately and has no remaining exposure",
+        "vega_rho_vanna": "Per percentage point",
+        "volga": "Per squared volatility point",
+        "theta_charm": "Per elapsed day with spot, expiry and ex-dividend dates held fixed",
     }
 
 
@@ -71,14 +71,14 @@ def attach_reference(report: Request, request: Request) -> None:
         report.update(reference=None, reference_note=str(error))
         return
     report["reference"] = reference
-    report["reference_note"] = "Black-Scholes exact sous les hypothèses de ce marché"
+    report["reference_note"] = "Black-Scholes value under these market assumptions"
     for name, row in report["greeks"].items():
         row["analytic_value"] = reference["greeks"][name]["value"]
         if row["value"] is not None:
             row["analytic_relative_error"] = relative_error(row["value"], row["analytic_value"])
             if row["analytic_relative_error"] > 0.1:
                 row["warning"] = (
-                    "Écart supérieur à 10 % avec la référence analytique : augmenter le nombre de pas"
+                    "The estimate differs from the analytical value by more than 10%. Try a finer grid."
                 )
 
 

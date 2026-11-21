@@ -642,16 +642,26 @@ td {
 }
 .tree-scroll svg {
   display: block;
+  width: 100%;
+  min-width: 560px;
 }
 .tree-line {
-  stroke: #cfd7e1;
-  stroke-width: 1;
+  stroke: #aebeca;
+  stroke-width: 1.3;
 }
 .tree-text {
-  fill: #566a80;
+  fill: #2b4054;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
   font:
-    10px Consolas,
+    12px Consolas,
     monospace;
+}
+.tree-value {
+  fill: #526779;
+  font-size: 11px;
 }
 .tree-node {
   stroke: #fff;
@@ -659,7 +669,17 @@ td {
 }
 .tree-node.exercise {
   stroke: #18293c;
-  stroke-width: 2;
+  stroke-width: 2.5;
+}
+.exercise-key::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  margin: 0 6px 0 10px;
+  border: 2px solid #18293c;
+  border-radius: 50%;
+  vertical-align: middle;
 }
 .probability-legend {
   display: flex;

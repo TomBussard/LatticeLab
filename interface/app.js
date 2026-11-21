@@ -30,8 +30,8 @@ const kinds = {
   custom: 'Custom payoff',
 };
 const pages = {
-  price: ['Pricing', 'Position value and equity hedge', 'Calculationate'],
-  greeks: ['Greeks', 'Select a Greek to see its curve', 'Calculationate Greeks'],
+  price: ['Pricing', 'Position value and equity hedge', 'Calculate'],
+  greeks: ['Greeks', 'Select a Greek to see its curve', 'Calculate Greeks'],
   convergence: [
     'Convergence',
     'Price and error as the grid is refined',
@@ -75,16 +75,16 @@ function renderLegs() {
   $('#legs').innerHTML = legs
     .map(
       (leg, i) =>
-        `<tr data-leg="${i}"><td><select data-field="kind" aria-label="Product ligne ${i + 1}">${options(kinds, leg.kind)}</select></td><td><select data-field="american" aria-label="Exercise ligne ${i + 1}" ${['digital_call', 'digital_put', 'one_touch_up'].includes(leg.kind) ? 'disabled' : ''}>${options({ false: 'Européen', true: 'Américain' }, leg.american)}</select></td><td><input data-field="strike" aria-label="Strike ligne ${i + 1}" type="number" step="any" min="0" value="${leg.strike}"></td><td><input data-field="expiry" aria-label="Expiry ligne ${i + 1}" type="date" value="${escapeHtml(leg.expiry)}"></td><td><input data-field="quantity" aria-label="Quantity ligne ${i + 1}" type="number" step="any" value="${leg.quantity}"></td><td><input data-field="multiplier" aria-label="Multiplier ligne ${i + 1}" type="number" min="0.001" step="any" value="${leg.multiplier}"></td><td><button class="delete-leg" data-delete="${i}" aria-label="Supprimer la ligne ${i + 1}" ${legs.length === 1 ? 'disabled' : ''}>×</button></td></tr>${extraLeg(leg, i)}`,
+        `<tr data-leg="${i}"><td><select data-field="kind" aria-label="Product in leg ${i + 1}">${options(kinds, leg.kind)}</select></td><td><select data-field="american" aria-label="Exercise in leg ${i + 1}" ${['digital_call', 'digital_put', 'one_touch_up'].includes(leg.kind) ? 'disabled' : ''}>${options({ false: 'European', true: 'American' }, leg.american)}</select></td><td><input data-field="strike" aria-label="Strike in leg ${i + 1}" type="number" step="any" min="0" value="${leg.strike}"></td><td><input data-field="expiry" aria-label="Expiry in leg ${i + 1}" type="date" value="${escapeHtml(leg.expiry)}"></td><td><input data-field="quantity" aria-label="Quantity in leg ${i + 1}" type="number" step="any" value="${leg.quantity}"></td><td><input data-field="multiplier" aria-label="Multiplier in leg ${i + 1}" type="number" min="0.001" step="any" value="${leg.multiplier}"></td><td><button class="delete-leg" data-delete="${i}" aria-label="Remove leg ${i + 1}" ${legs.length === 1 ? 'disabled' : ''}>×</button></td></tr>${extraLeg(leg, i)}`,
     )
     .join('');
 }
 function extraLeg(leg, i) {
   let fields = '';
   if (['digital_call', 'digital_put', 'one_touch_up'].includes(leg.kind))
-    fields += `<label>Versement (EUR)<input data-field="payout" type="number" min="0" step="any" value="${leg.payout}"></label>`;
+    fields += `<label>Payout (EUR)<input data-field="payout" type="number" min="0" step="any" value="${leg.payout}"></label>`;
   if (leg.kind === 'one_touch_up')
-    fields += `<label>Observation<select data-field="monitoring">${options({ continuous: 'Continue', grid: 'Dates de l’arbre' }, leg.monitoring)}</select></label>`;
+    fields += `<label>Observation<select data-field="monitoring">${options({ continuous: 'Continuous', grid: 'Tree dates' }, leg.monitoring)}</select></label>`;
   if (leg.kind === 'custom')
     fields += `<label>Payoff f(S, K)<input class="expression" data-field="expression" value="${escapeHtml(leg.expression)}"></label>`;
   return fields
@@ -93,14 +93,14 @@ function extraLeg(leg, i) {
 }
 function syncLegs() {
   document.querySelectorAll('#legs [data-field]').forEach(
-    /** On reporte le champ modifié dans les paramètres de son instrument */ (field) => {
+    (field) => {
       const leg = legs[Number(field.closest('[data-leg]').dataset.leg)],
         key = field.dataset.field;
       if (key === 'american') leg[key] = field.value === 'true';
       else if (['kind', 'expiry', 'expression', 'monitoring'].includes(key)) leg[key] = field.value;
       else {
         if (!field.value.trim() || !Number.isFinite(Number(field.value)))
-          throw Error('Renseignez les paramètres numériques des instruments');
+          throw Error('Enter a number for each position field');
         leg[key] = Number(field.value);
       }
     },
@@ -109,7 +109,7 @@ function syncLegs() {
 function readNumber(id) {
   const field = $(id);
   if (!field.value.trim() || !Number.isFinite(Number(field.value)))
-    throw Error('Un paramètre numérique est manquant');
+    throw Error('Enter a number in each market field');
   return Number(field.value);
 }
 function getRequest() {
@@ -142,7 +142,7 @@ function getSettings() {
 }
 function pageOptions() {
   if (page === 'convergence')
-    return `<div class="options-panel"><div class="options-grid"><label>Résultat à étudier<select id="metric">${options({ price: 'Prix de la position', ...labels }, 'price')}</select></label><label>Tolérance absolue<input id="tolerance" type="number" step="any" min="0.00000001" value="0.001"></label></div></div>`;
+    return `<div class="options-panel"><div class="options-grid"><label>Metric<select id="metric">${options({ price: 'Position value', ...labels }, 'price')}</select></label><label>Absolute tolerance<input id="tolerance" type="number" step="any" min="0.00000001" value="0.001"></label></div></div>`;
   return '';
 }
 function setPage(next) {
@@ -150,7 +150,7 @@ function setPage(next) {
   page = next;
   result = requestSnapshot = settingsSnapshot = null;
   document.querySelectorAll('.nav-item').forEach(
-    /** On indique dans la navigation quel onglet est actif */ (button) => {
+    (button) => {
       button.classList.toggle('active', button.dataset.page === page);
       if (button.dataset.page === page) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
@@ -162,12 +162,12 @@ function setPage(next) {
   $('#page-options').innerHTML = pageOptions();
   $('#run-hint').textContent =
     page === 'tree'
-      ? 'Vue illustrative sur 6 pas, avec les paramètres de la position'
+      ? 'The tree shows up to six steps for the first leg.'
       : page === 'convergence' || page === 'benchmark'
         ? 'Grid sizes are chosen when the calculation starts'
         : '';
   $('#results').innerHTML =
-    `<p class="empty-state">Cliquez sur « ${pages[page][2]} » pour lancer le calcul.</p>`;
+    `<p class="empty-state">Select ${pages[page][2]} to see the results.</p>`;
   $('#stale').hidden = $('#error').hidden = true;
   $('#export-results').disabled = true;
 }
@@ -178,7 +178,7 @@ function updatePruning() {
   const binomial = $('#tree-mode').value === 'binomial';
   $('#use-pruning').disabled = binomial;
   $('#pruning-note').textContent = binomial
-    ? 'Le pruning est disponible avec l’arbre trinomial'
+    ? 'Pruning applies to the trinomial tree'
     : 'Skip branches below the probability threshold';
 }
 function showError(message) {
@@ -189,12 +189,12 @@ async function poll(id) {
   while (true) {
     const response = await fetch('/api/jobs/' + id),
       job = await response.json();
-    if (!response.ok) throw Error(job.error || 'Serveur indisponible');
-    $('#progress-message').textContent = job.progress || 'Calculation en cours';
+    if (!response.ok) throw Error(job.error || 'Server unavailable');
+    $('#progress-message').textContent = job.progress || 'Calculating';
     if (job.state === 'done') return job.result;
     if (job.state === 'error') throw Error(job.error);
     await new Promise(
-      /** On attend brièvement avant de redemander l’état du calcul */ (resolve) =>
+      (resolve) =>
         setTimeout(resolve, 300),
     );
   }
@@ -205,7 +205,7 @@ async function run(action = page, metric = null) {
   try {
     if (action === 'curve') {
       if (!requestSnapshot || !$('#stale').hidden)
-        throw Error('Recalculez les grecs après avoir modifié les paramètres');
+        throw Error('Recalculate the Greeks after changing the inputs');
       payload = {
         action: 'curve',
         request: structuredClone(requestSnapshot),
@@ -221,23 +221,23 @@ async function run(action = page, metric = null) {
       document
         .querySelectorAll(`[data-curve="${metric}"]`)
         .forEach(
-          /** On affiche l’erreur dans le bloc de la courbe demandée */ (el) =>
+          (el) =>
             (el.textContent = error.message),
         );
     return;
   }
   const controls = [...document.querySelectorAll('input,select,button')].map(
-    /** On mémorise l’état des contrôles avant le calcul */ (el) => [el, el.disabled],
+    (el) => [el, el.disabled],
   );
   controls.forEach(
-    /** On désactive les contrôles pendant le calcul */ ([el]) => (el.disabled = true),
+    ([el]) => (el.disabled = true),
   );
   busy = true;
   document.body.classList.add('busy');
   $('#progress').hidden = false;
   $('#error').hidden = true;
   $('#progress-message').textContent =
-    action === 'curve' ? 'Calculation de la courbe de ' + labels[metric] : 'Calculation en cours';
+    action === 'curve' ? 'Calculating the curve for ' + labels[metric] : 'Calculating';
   const start = performance.now(),
     timer = setInterval(
       () => ($('#elapsed').textContent = ((performance.now() - start) / 1000).toFixed(1) + ' s'),
@@ -269,7 +269,7 @@ async function run(action = page, metric = null) {
     document
       .querySelectorAll(`[data-curve="${metric}"]`)
       .forEach(
-        /** On signale l’erreur dans les blocs de la courbe concernée */ (el) =>
+        (el) =>
           (el.textContent = error.message),
       );
   } finally {
@@ -278,7 +278,7 @@ async function run(action = page, metric = null) {
     document.body.classList.remove('busy');
     $('#progress').hidden = true;
     controls.forEach(
-      /** On rétablit l’état des contrôles après le calcul */ ([el, disabled]) => {
+      ([el, disabled]) => {
         if (el.isConnected) el.disabled = disabled;
       },
     );
@@ -290,7 +290,7 @@ function panel(title, subtitle, body) {
   return `<section class="result-panel"><div class="section-heading"><div><h3>${escapeHtml(title)}</h3>${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}</div></div>${body}</section>`;
 }
 function dataTable(headers, rows) {
-  return `<div class="table-scroll"><table><thead><tr>${headers.map(/** On construit la cellule d’en-tête du tableau */ (h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(/** On construit une ligne du tableau de résultats */ (row) => `<tr>${row.map(/** On transforme la valeur en cellule de tableau */ (c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  return `<div class="table-scroll"><table><thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function tableDetails(title, headers, rows) {
   return `<details class="values-details"><summary>${escapeHtml(title)}</summary>${dataTable(headers, rows)}</details>`;
@@ -308,20 +308,20 @@ function renderResult(data) {
 function warningText(report) {
   return (report.warnings || [])
     .map(
-      /** On transforme un avertissement en paragraphe lisible */ (text) =>
+      (text) =>
         `<p class="small-note">${escapeHtml(text)}</p>`,
     )
     .join('');
 }
 function pricingTimings(times) {
   const rows = [
-    ['Tree + valorisation', times.build + times.price, 'timing-price'],
-    ['Construction de l’arbre', times.build, 'timing-detail'],
+    ['Tree construction and pricing', times.build + times.price, 'timing-price'],
+    ['Tree construction', times.build, 'timing-detail'],
     ['Pricing', times.price, 'timing-detail'],
-    ['Couverture en delta', times.greeks, 'timing-hedge'],
+    ['Delta hedge', times.greeks, 'timing-hedge'],
   ];
   const other = Math.max(0, times.total - times.build - times.price - times.greeks);
-  if (other >= 0.00005) rows.push(['Autres traitements', other, 'timing-other']);
+  if (other >= 0.00005) rows.push(['Other calculations', other, 'timing-other']);
   return (
     '<div class="timing-breakdown">' +
     rows
@@ -340,7 +340,7 @@ function renderPrices(data) {
     const shares = report.hedge_shares,
       note =
         shares === null
-          ? 'Delta indisponible'
+          ? 'Delta unavailable'
           : shares === 0
             ? 'No hedge trade needed'
             : shares > 0
@@ -348,16 +348,16 @@ function renderPrices(data) {
               : 'Shares to sell';
     const unit =
       requestSnapshot.legs.length === 1
-        ? 'Prix unitaire : ' + numberText(report.unit_prices[0], 6) + ' EUR'
+        ? 'Unit price ' + numberText(report.unit_prices[0], 6) + ' EUR'
         : requestSnapshot.legs.length + ' instruments';
     html +=
-      `<div class="metrics"><div class="metric"><div class="metric-label">Valeur de la position</div><div class="metric-value">${numberText(report.price)} <small>EUR</small></div><div class="metric-note">${unit}</div></div><div class="metric"><div class="metric-label">Couverture en delta</div><div class="metric-value">${numberText(shares, 2)} <small>actions</small></div><div class="metric-note">${note}</div></div><div class="metric"><div class="metric-label">Temps total du moteur</div><div class="metric-value">${numberText(report.timings.total * 1000, 1)} <small>ms</small></div><div class="metric-note">${pricingTimings(report.timings)}${engine === 'vba' ? '<div class="timing-other">Hors ouverture d’Excel et échanges</div>' : ''}</div></div></div>` +
+      `<div class="metrics"><div class="metric"><div class="metric-label">Position value</div><div class="metric-value">${numberText(report.price)} <small>EUR</small></div><div class="metric-note">${unit}</div></div><div class="metric"><div class="metric-label">Delta hedge</div><div class="metric-value">${numberText(shares, 2)} <small>shares</small></div><div class="metric-note">${note}</div></div><div class="metric"><div class="metric-label">Total engine time</div><div class="metric-value">${numberText(report.timings.total * 1000, 1)} <small>ms</small></div><div class="metric-note">${pricingTimings(report.timings)}${engine === 'vba' ? '<div class="timing-other">Excludes Excel startup and data transfer</div>' : ''}</div></div></div>` +
       warningText(report);
   }
   if (data.results.python && data.results.vba)
-    html += `<p class="compare-gap">Écart Python − VBA : ${numberText(data.results.python.price - data.results.vba.price, 10)} EUR</p>`;
+    html += `<p class="compare-gap">Python less VBA: ${numberText(data.results.python.price - data.results.vba.price, 10)} EUR</p>`;
   html +=
-    '<p class="small-note">Le temps du delta inclut les valorisations supplémentaires nécessaires à la couverture et les opérations associées.</p>';
+    '<p class="small-note">Delta timing includes the extra valuations used to size the hedge.</p>';
   $('#results').innerHTML = html;
 }
 function renderGreeks(data) {
@@ -369,20 +369,20 @@ function renderGreeks(data) {
       Object.entries(report.greeks)
         .map(
           ([name, row]) =>
-            `<details class="greek-item" data-greek="${name}"><summary><span class="greek-name">${labels[name]}<small>${definitions[name]}</small>${row.warning ? '<small class="greek-caution">À contrôler</small>' : ''}</span><span class="greek-value">${numberText(row.value, 6)}<small>${escapeHtml(row.unit)}</small></span></summary><div class="greek-content">${row.warning ? `<p class="notice">${escapeHtml(row.warning)}</p>` : ''}<p class="greek-note">${labels[name]} de la position en fonction du prix de l’action</p><div data-curve="${name}" class="graph-empty">Calculation de la courbe…</div></div></details>`,
+            `<details class="greek-item" data-greek="${name}"><summary><span class="greek-name">${labels[name]}<small>${definitions[name]}</small>${row.warning ? '<small class="greek-caution">Check against reference</small>' : ''}</span><span class="greek-value">${numberText(row.value, 6)}<small>${escapeHtml(row.unit)}</small></span></summary><div class="greek-content">${row.warning ? `<p class="notice">${escapeHtml(row.warning)}</p>` : ''}<p class="greek-note">${labels[name]} of the position across share prices</p><div data-curve="${name}" class="graph-empty">Calculating the curve…</div></div></details>`,
         )
         .join('') +
       '</div>';
     html += warningText(report);
   }
   html +=
-    '<p class="small-note">Vega et rho par point de pourcentage · Theta et charm par jour · Volga par point de volatilité au carré</p>';
+    '<p class="small-note">Vega and rho per percentage point · Theta and charm per day · Volga per squared volatility point</p>';
   $('#results').innerHTML = html;
   document.querySelectorAll('[data-greek]').forEach(
-    /** On associe l’ouverture d’un bloc à la demande de sa courbe */ (item) =>
+    (item) =>
       item.addEventListener(
         'toggle',
-        /** On calcule la courbe à l’ouverture du grec si elle n’a pas encore été obtenue */ () => {
+        () => {
           if (!item.open) return;
           if (busy) {
             item.open = false;
@@ -397,7 +397,7 @@ function renderGreeks(data) {
 }
 function renderCurve(name, data) {
   document.querySelectorAll(`[data-curve="${name}"]`).forEach(
-    /** On remplit le bloc de courbe avec le graphique et les valeurs reçues */ (el) => {
+    (el) => {
       el.className = '';
       el.innerHTML =
         lineChart(
@@ -408,10 +408,10 @@ function renderCurve(name, data) {
           labels[name] + ' (' + data.unit + ')',
         ) +
         tableDetails(
-          'Voir les valeurs',
-          ['Engine', 'Share price', 'Valeur'],
+          'Show values',
+          ['Engine', 'Share price', 'Value'],
           data.rows.map(
-            /** On prépare la ligne de valeurs correspondant à ce spot */ (r) => [
+            (r) => [
               r.engine.toUpperCase(),
               numberText(r.spot, 2),
               numberText(r.value, 6),
@@ -423,8 +423,8 @@ function renderCurve(name, data) {
 }
 function renderConvergence(data) {
   const metric = settingsSnapshot.metric || 'price',
-    title = labels[metric] || 'Prix de la position';
-  let html = `<p class="small-note">Référence : ${escapeHtml(data.reference.label)} = ${numberText(data.reference.value, 8)}${data.reference.empirical ? ' · Comparaison numérique, sans garantie d’erreur exacte' : ''}</p>`;
+    title = labels[metric] || 'Position value';
+  let html = `<p class="small-note">Reference: ${escapeHtml(data.reference.label)} = ${numberText(data.reference.value, 8)}${data.reference.empirical ? ' · Numerical reference from a finer grid' : ''}</p>`;
   html += panel(
     'Convergence',
     title,
@@ -433,14 +433,14 @@ function renderConvergence(data) {
   html += panel(
     'Absolute error',
     'Difference from reference',
-    `<div class="result-body">${lineChart(data.rows, 'steps', 'error', 'Time steps', 'Absolute error', 'engine', data.tolerance)}</div>`,
+    `<div class="result-body">${lineChart(data.rows, 'steps', 'error', 'Time steps', 'Absolute error', 'engine', data.tolerance, 'Tolerance')}</div>`,
   );
-  html += `<p class="small-note">${data.thresholds.map(/** On résume les nombres de pas qui respectent la tolérance */ (row) => `${row.engine.toUpperCase()} : ${row.remaining_tested ?? 'aucun nombre de'} pas ${row.remaining_tested ? 'et les valeurs suivantes testées sont sous' : 'testé sous'} la tolérance`).join(' · ')}. La convergence peut osciller.</p>`;
+  html += `<p class="small-note">${data.thresholds.map((row) => `${row.engine.toUpperCase()}: ${row.remaining_tested == null ? 'no tested grid met and maintained the tolerance' : 'all tested grids from ' + row.remaining_tested + ' steps met the tolerance'}`).join(' · ')}. Convergence can oscillate.</p>`;
   html += tableDetails(
     'Show results',
-    ['Engine', 'Pas', 'Valeur', 'Absolute error', 'Erreur relative'],
+    ['Engine', 'Step', 'Value', 'Absolute error', 'Relative error'],
     data.rows.map(
-      /** On prépare une ligne avec le nombre de pas et les erreurs mesurées */ (r) => [
+      (r) => [
         r.engine.toUpperCase(),
         r.steps,
         numberText(r.value, 8),
@@ -453,7 +453,7 @@ function renderConvergence(data) {
 }
 function renderBenchmark(data) {
   const rows = data.rows.map(
-    /** On convertit le temps du moteur en millisecondes pour le graphique */ (r) => ({
+    (r) => ({
       ...r,
       core_ms: r.core * 1000,
     }),
@@ -461,23 +461,23 @@ function renderBenchmark(data) {
   $('#results').innerHTML =
     panel(
       'Runtime',
-      'Construction et valorisation de l’arbre',
+      'Tree construction and backward induction',
       `<div class="result-body">${lineChart(rows, 'steps', 'core_ms', 'Time steps', 'Engine time (ms)')}</div>`,
     ) +
     dataTable(
       [
         'Engine',
-        'Pas',
-        'Prix (EUR)',
+        'Step',
+        'Price (EUR)',
         'Construction (ms)',
         'Pricing (ms)',
         'Engine (ms)',
-        'Ouverture Excel (ms)',
-        'Échanges (ms)',
+        'Excel startup (ms)',
+        'Transfer (ms)',
         'Total (ms)',
       ],
       rows.map(
-        /** On présente les temps détaillés du moteur et de ses échanges */ (r) => [
+        (r) => [
           r.engine.toUpperCase(),
           r.steps,
           numberText(r.value, 6),
@@ -490,29 +490,30 @@ function renderBenchmark(data) {
         ],
       ),
     ) +
-    '<p class="small-note">Les calculs sont répétés automatiquement. Le temps du moteur est distingué du démarrage et des échanges avec Excel.</p>';
+    '<p class="small-note">Times are the median of two runs. Excel startup and data transfer are measured separately.</p>';
 }
 function renderTrees(data) {
   let html = '';
   for (const [engine, report] of Object.entries(data.results)) {
     if (Object.keys(data.results).length > 1) html += engineHeading(engine);
     html += panel(
-      'Transition probabilities',
-      'Plus le nœud est probable, plus il est grand et rouge',
+      'Share price and option value',
+      'S is the share price and V is the option value, both in euros. Node size and colour show the risk-neutral probability of reaching that point.',
       treeChart(report) +
-        '<div class="probability-legend"><span>Peu probable</span><span class="probability-scale"></span><span>Très probable</span></div>',
+        '<div class="probability-legend"><span>Lower probability</span><span class="probability-scale"></span><span>Higher probability</span>' +
+        (report.nodes.some((node) => node.early_exercise) ? '<span class="exercise-key">Early exercise</span>' : '') + '</div>',
     );
     if (report.note) html += `<p class="small-note">${escapeHtml(report.note)}</p>`;
     html += tableDetails(
       'Show nodes',
-      ['Pas', 'Share price', 'Option value', 'Probability', 'Early exercise'],
+      ['Step', 'Share price', 'Option value', 'Probability', 'Early exercise'],
       report.nodes.map(
-        /** On prépare une ligne décrivant le prix et la probabilité du nœud */ (n) => [
+        (n) => [
           n.step,
           numberText(n.spot, 4),
           numberText(n.value, 6),
           numberText(n.probability * 100, 3) + ' %',
-          n.early_exercise ? 'Oui' : '—',
+          n.early_exercise ? 'Yes' : 'No',
         ],
       ),
     );
@@ -522,10 +523,10 @@ function renderTrees(data) {
 async function refreshStatus() {
   try {
     const data = await (await fetch('/api/status')).json();
-    $('#vba-status').textContent = data.vba.available ? 'Excel disponible' : 'Excel indisponible';
+    $('#vba-status').textContent = data.vba.available ? 'Excel available' : 'Excel unavailable';
     $('#vba-status').title = data.vba.reason || '';
   } catch (error) {
-    $('#vba-status').textContent = 'Serveur indisponible';
+    $('#vba-status').textContent = 'Server unavailable';
   }
 }
 function download(value, name) {
@@ -535,7 +536,7 @@ function download(value, name) {
   a.download = name;
   a.click();
   setTimeout(
-    /** On libère l’adresse temporaire créée pour le téléchargement */ () =>
+    () =>
       URL.revokeObjectURL(url),
     1000,
   );
@@ -546,14 +547,14 @@ function validateDate(value) {
     !Number.isFinite(Date.parse(value)) ||
     new Date(value).toISOString().slice(0, 10) !== value
   )
-    throw Error('Date invalide dans le fichier');
+    throw Error('The file contains an invalid date');
 }
 function restore(data) {
   const r = data.request || data;
   if (!r.market || !r.grid || !Array.isArray(r.legs) || !r.legs.length || r.legs.length > 30)
-    throw Error('Fichier de paramètres invalide');
+    throw Error('Invalid settings file');
   const restored = r.legs.map(
-    /** On complète les champs optionnels d’un instrument importé */ (leg) => ({
+    (leg) => ({
       ...leg,
       payout: leg.payout ?? 1,
       expression: leg.expression ?? 'max(S-K,0)',
@@ -562,19 +563,19 @@ function restore(data) {
   );
   for (const leg of restored) {
     if (!Object.hasOwn(kinds, leg.kind))
-      throw Error('Ce produit ne fait pas partie du calculateur');
+      throw Error('This product is unavailable');
     if (
       typeof leg.american !== 'boolean' ||
       (leg.american && ['digital_call', 'digital_put', 'one_touch_up'].includes(leg.kind))
     )
-      throw Error('Exercise incompatible avec ce produit');
+      throw Error('This exercise style is unavailable for the product');
     for (const key of ['strike', 'quantity', 'multiplier', 'payout'])
       if (typeof leg[key] !== 'number' || !Number.isFinite(leg[key]))
-        throw Error('Paramètre numérique invalide');
+        throw Error('Invalid numeric input');
     if (leg.strike < 0 || leg.multiplier <= 0 || leg.payout < 0)
-      throw Error('Paramètre de contrat invalide');
+      throw Error('Invalid contract terms');
     if (!['grid', 'continuous'].includes(leg.monitoring))
-      throw Error('Observation de barrière invalide');
+      throw Error('Invalid barrier monitoring mode');
     validateDate(leg.expiry);
     delete leg._touch_settled;
   }
@@ -594,15 +595,15 @@ function restore(data) {
   values['#yield-rate'] *= 100;
   for (const [id, value] of Object.entries(values)) {
     if ($(id).type === 'number' && !Number.isFinite(Number(value)))
-      throw Error('Valeur numérique invalide');
+      throw Error('Invalid numeric value');
     if (
       $(id).tagName === 'SELECT' &&
       ![...$(id).options].some(
-        /** On vérifie que la valeur importée existe dans la liste de choix */ (o) =>
+        (o) =>
           o.value === String(value),
       )
     )
-      throw Error('Convention inconnue');
+      throw Error('Unknown convention');
   }
   validateDate(r.valuation_date);
   if (r.market.dividend_date) validateDate(r.market.dividend_date);
@@ -611,9 +612,9 @@ function restore(data) {
     Number(values['#volatility']) <= 0 ||
     Number(values['#dividend']) < 0
   )
-    throw Error('Market invalide');
+    throw Error('Invalid market inputs');
   Object.entries(values).forEach(
-    /** On reporte une valeur importée dans son champ du formulaire */ ([id, value]) =>
+    ([id, value]) =>
       ($(id).value = value),
   );
   $('#use-pruning').checked = Number(r.grid.pruning) > 0;
@@ -625,15 +626,15 @@ function restore(data) {
 document
   .querySelectorAll('[data-page]')
   .forEach(
-    /** On relie chaque bouton de navigation à son onglet */ (button) =>
+    (button) =>
       button.addEventListener(
         'click',
-        /** On ouvre l’onglet correspondant au bouton cliqué */ () => setPage(button.dataset.page),
+        () => setPage(button.dataset.page),
       ),
   );
 $('#add-leg').addEventListener(
   'click',
-  /** On ajoute un instrument en reprenant les paramètres de la dernière ligne */ () => {
+  () => {
     try {
       syncLegs();
       if (legs.length < 30) {
@@ -648,7 +649,7 @@ $('#add-leg').addEventListener(
 );
 $('#legs').addEventListener(
   'click',
-  /** On retire l’instrument dont le bouton de suppression est cliqué */ (event) => {
+  (event) => {
     const button = event.target.closest('[data-delete]');
     if (button && legs.length > 1) {
       syncLegs();
@@ -660,7 +661,7 @@ $('#legs').addEventListener(
 );
 $('#legs').addEventListener(
   'change',
-  /** On adapte les champs de l’instrument après un changement de produit */ (event) => {
+  (event) => {
     if (!event.target.dataset.field) return;
     try {
       syncLegs();
@@ -678,7 +679,7 @@ $('#legs').addEventListener(
 );
 $('#legs').addEventListener(
   'input',
-  /** On mémorise la saisie et on signale que les résultats sont à recalculer */ () => {
+  () => {
     try {
       syncLegs();
     } catch (error) {}
@@ -687,25 +688,25 @@ $('#legs').addEventListener(
 );
 document.addEventListener(
   'input',
-  /** On marque les résultats comme anciens lorsqu’un champ est saisi */ (event) => {
+  (event) => {
     if (event.target.matches('input:not([type="file"]),select')) markStale();
   },
 );
 document.addEventListener(
   'change',
-  /** On actualise le pruning et l’état des résultats après un changement de choix */ (event) => {
+  (event) => {
     if (event.target.matches('input:not([type="file"]),select')) markStale();
     updatePruning();
   },
 );
 $('#run').addEventListener(
   'click',
-  /** On lance le calcul lorsque le bouton principal est cliqué */ () => run(),
+  () => run(),
 );
 $('#refresh-status').addEventListener('click', refreshStatus);
 $('#export-config').addEventListener(
   'click',
-  /** On exporte les paramètres courants dans un fichier JSON */ () => {
+  () => {
     try {
       download(
         JSON.stringify({ version: 2, request: getRequest() }, null, 2),
@@ -718,11 +719,11 @@ $('#export-config').addEventListener(
 );
 $('#import-config').addEventListener(
   'click',
-  /** On ouvre le sélecteur du fichier de paramètres à importer */ () => $('#config-file').click(),
+  () => $('#config-file').click(),
 );
 $('#config-file').addEventListener(
   'change',
-  /** On lit le fichier choisi et on restaure sa configuration */ async (event) => {
+  async (event) => {
     const file = event.target.files[0];
     if (!file) return;
     try {
@@ -737,7 +738,7 @@ $('#config-file').addEventListener(
 );
 $('#export-results').addEventListener(
   'click',
-  /** On exporte les résultats avec les paramètres utilisés pour leur calcul */ () => {
+  () => {
     if (result)
       download(
         JSON.stringify({ request: requestSnapshot, settings: settingsSnapshot, result }, null, 2),

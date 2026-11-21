@@ -18,14 +18,14 @@ ORDERS = {
     "speed": {"spot": 3},
 }
 UNITS = {
-    "delta": "actions",
+    "delta": "shares",
     "gamma": "EUR / EUR²",
-    "vega": "EUR / point de volatilité",
-    "theta": "EUR / jour",
-    "rho": "EUR / point de taux",
-    "vanna": "actions / point de volatilité",
-    "volga": "EUR / point de volatilité²",
-    "charm": "actions / jour",
+    "vega": "EUR / volatility point",
+    "theta": "EUR / day",
+    "rho": "EUR / rate point",
+    "vanna": "shares / volatility point",
+    "volga": "EUR / squared volatility point",
+    "charm": "shares / day",
     "speed": "EUR / EUR³",
 }
 

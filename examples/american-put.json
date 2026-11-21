@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "request": {
+    "engine": "python",
+    "valuation_date": "2026-10-29",
+    "day_basis": 365,
+    "market": {
+      "spot": 100,
+      "volatility": 0.2,
+      "rate": 0.05,
+      "yield_rate": 0,
+      "dividend": 0,
+      "dividend_date": null
+    },
+    "grid": {
+      "mode": "binomial",
+      "steps": 4,
+      "pruning": 0
+    },
+    "legs": [
+      {
+        "kind": "put",
+        "american": true,
+        "strike": 100,
+        "expiry": "2027-10-29",
+        "quantity": 1,
+        "multiplier": 1
+      }
+    ]
+  }
+}

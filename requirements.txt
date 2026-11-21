@@ -1,2 +1,2 @@
-# On installe ce pont seulement pour automatiser Excel sous Windows
+# Only the desktop Excel bridge needs this dependency.
 pywin32>=306; sys_platform == "win32"
