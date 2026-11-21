@@ -1,4 +1,4 @@
-"""Nœuds reliés directement entre eux, sans tableau de nœuds."""
+"""Nodes connected directly to each other, without node array."""
 
 from __future__ import annotations
 
@@ -6,17 +6,28 @@ import math
 
 
 class Node:
-    # On évite un dictionnaire par nœud pour limiter la mémoire des grands arbres
-    __slots__ = ("price", "option_value", "reach_probability", "next_up", "next_mid", "next_down",
-                 "up_node", "down_node", "proba_down", "proba_mid", "proba_up")
+    # Avoid a node dictionary to limit the memory of large trees
+    __slots__ = (
+        "price",
+        "option_value",
+        "reach_probability",
+        "next_up",
+        "next_mid",
+        "next_down",
+        "up_node",
+        "down_node",
+        "proba_down",
+        "proba_mid",
+        "proba_up",
+    )
 
     def __init__(self, price: float) -> None:
-        """On crée un nœud avec son prix, ses probabilités et ses liens initialement vides"""
+        """We create a knot with its price, its probabilities and its initially empty ties"""
         if not math.isfinite(price) or price <= 0:
             raise ValueError("Le prix d'un nœud doit être positif et fini.")
         self.price = price
         self.option_value = 0.0
-        # On cumule la probabilité d'arriver ici depuis la racine
+        # We cumulate the probability of getting here from the root
         self.reach_probability = 0.0
 
         self.next_up: Node | None = None
@@ -31,22 +42,22 @@ class Node:
         self.proba_up = 0.0
 
     def upper(self, alpha: float) -> Node:
-        """On renvoie le voisin supérieur, en le créant seulement si nécessaire"""
-        # On réutilise le nœud existant pour que plusieurs chemins se rejoignent
+        """We send the upper neighbour back, creating it only if necessary."""
+        # Re-use the existing node for several paths to join
         if self.up_node is None:
             self.up_node = Node(self.price * alpha)
             self.up_node.down_node = self
         return self.up_node
 
     def lower(self, alpha: float) -> Node:
-        """On renvoie le voisin inférieur, en le créant seulement si nécessaire"""
+        """The lower neighbour is returned, only if necessary."""
         if self.down_node is None:
             self.down_node = Node(self.price / alpha)
             self.down_node.up_node = self
         return self.down_node
 
     def closest(self, target: float, alpha: float) -> Node:
-        """On cherche le prix le plus proche de la cible sur la colonne"""
+        """We are looking for the price closest to the target on the column."""
         node = self
         while target > node.price * (1.0 + alpha) / 2.0:
             node = node.upper(alpha)
@@ -56,15 +67,15 @@ class Node:
         return node
 
     def top(self) -> Node:
-        """On retrouve le nœud le plus haut de la colonne pour la parcourir"""
-        # On retrouve le sommet en suivant les liens, sans stocker la colonne dans une liste
+        """Find the highest node of the column to browse it"""
+        # You find the top by following the links, without storing the column in a list
         node = self
         while node.up_node is not None:
             node = node.up_node
         return node
 
     def set_probabilities(self, down: float, mid: float, up: float) -> None:
-        """On vérifie et on enregistre les trois probabilités de transition"""
+        """Check and record the three transition probabilities"""
 
         for probability in (down, mid, up):
             if not math.isfinite(probability) or not 0.0 <= probability <= 1.0:
@@ -81,11 +92,11 @@ class Node:
 
 
 class TrunkNode(Node):
-    """Nœud du tronc : ajoute le lien permettant de remonter le temps."""
+    """Node of the trunk: adds the link allowing to go back time."""
 
     __slots__ = ("prev_mid",)
 
     def __init__(self, price: float, prev_node: TrunkNode | None = None) -> None:
-        """On crée un nœud de tronc relié à la colonne précédente"""
+        """Create a trunk node connected to the previous column"""
         super().__init__(price)
         self.prev_mid = prev_node

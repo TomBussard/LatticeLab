@@ -1,150 +1,150 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pricer d’options</title>
+    <title>LatticeLab</title>
     <link rel="icon" href="favicon.svg?blank=1" type="image/svg+xml" />
     <link rel="stylesheet" href="app.css" />
     <script src="charts.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
-  <header class="topbar"><a href="/">Pricer d’options</a><span>Tom Bussard</span></header>
+  <header class="topbar"><a href="/">LatticeLab</a><span>Tom Bussard</span></header>
     <div class="workspace">
-      <nav class="navigation" aria-label="Navigation principale">
-        <button class="nav-item active" data-page="price" aria-current="page">Valorisation</button>
-        <button class="nav-item" data-page="greeks">Grecs</button>
+      <nav class="navigation" aria-label="Main navigation">
+        <button class="nav-item active" data-page="price" aria-current="page">Pricing</button>
+        <button class="nav-item" data-page="greeks">Greeks</button>
         <button class="nav-item" data-page="convergence">Convergence</button>
-        <button class="nav-item" data-page="benchmark">Temps de calcul</button>
-        <button class="nav-item" data-page="tree">Arbre</button>
+        <button class="nav-item" data-page="benchmark">Runtime</button>
+        <button class="nav-item" data-page="tree">Tree</button>
         <div class="nav-bottom">
-          <p id="vba-status">Vérification d’Excel…</p>
-          <button id="refresh-status" class="text-button">Actualiser</button>
+          <p id="vba-status">Checking Excel…</p>
+          <button id="refresh-status" class="text-button">Refresh</button>
         </div>
       </nav>
-      <aside class="parameters" aria-label="Paramètres du marché">
-        <h2>Marché</h2>
+      <aside class="parameters" aria-label="Market inputs">
+        <h2>Market</h2>
         <label
-          >Prix de l’action (EUR)<input id="spot" type="number" step="any" min="0.001" value="100"
+          >Share price (EUR)<input id="spot" type="number" step="any" min="0.001" value="100"
         /></label>
         <div class="field-pair">
           <label
-            ><span class="field-label">Volatilité (%)</span
+            ><span class="field-label">Volatility (%)</span
             ><input id="volatility" type="number" step="any" min="0.001" value="20"
           /></label>
           <label
-            ><span class="field-label">Taux sans risque (%)</span
+            ><span class="field-label">Risk-free rate (%)</span
             ><input id="rate" type="number" step="any" value="3"
           /></label>
         </div>
         <div class="field-pair">
           <label
-            ><span class="field-label">Date de valorisation</span
+            ><span class="field-label">Valuation date</span
             ><input id="valuation-date" type="date" value="2026-10-29"
           /></label>
           <label
-            ><span class="field-label">Convention de jours</span
+            ><span class="field-label">Day-count basis</span
             ><select id="day-basis">
               <option value="365">ACT / 365</option>
               <option value="360">ACT / 360</option>
             </select></label
           >
         </div>
-        <p class="field-note">Volatilité et taux annuels</p>
+        <p class="field-note">Volatility and rates are annualised</p>
         <details open>
-          <summary>Dividendes</summary>
+          <summary>Dividends</summary>
           <label
-            >Rendement continu (%)<input id="yield-rate" type="number" step="any" value="0"
+            >Continuous dividend yield (%)<input id="yield-rate" type="number" step="any" value="0"
           /></label>
           <div class="field-pair">
             <label
-              ><span class="field-label">Dividende fixe (EUR)</span
+              ><span class="field-label">Cash dividend (EUR)</span
               ><input id="dividend" type="number" step="any" min="0" value="0" /></label
             ><label
-              ><span class="field-label">Date ex-dividende</span
+              ><span class="field-label">Ex-dividend date</span
               ><input id="dividend-date" type="date"
             /></label>
           </div>
         </details>
         <details open>
-          <summary>Calcul</summary>
+          <summary>Calculation</summary>
           <div class="field-pair">
             <label
-              ><span class="field-label">Arbre</span
+              ><span class="field-label">Tree</span
               ><select id="tree-mode">
                 <option value="trinomial">Trinomial</option>
                 <option value="binomial">Binomial</option>
               </select></label
             ><label
-              ><span class="field-label">Nombre de pas</span
+              ><span class="field-label">Time steps</span
               ><input id="steps" type="number" min="1" max="10000" step="1" value="300"
             /></label>
           </div>
           <label class="check-label"
-            ><input id="use-pruning" type="checkbox" checked />Utiliser le pruning</label
+            ><input id="use-pruning" type="checkbox" checked />Prune low-probability nodes</label
           >
-          <p class="field-note" id="pruning-note">Écarter les branches très peu probables</p>
+          <p class="field-note" id="pruning-note">Skip branches below the probability threshold</p>
         </details>
         <div class="parameter-actions">
-          <button id="export-config" class="secondary">Enregistrer</button
-          ><button id="import-config" class="secondary">Ouvrir</button>
+          <button id="export-config" class="secondary">Save</button
+          ><button id="import-config" class="secondary">Open</button>
         </div>
         <input id="config-file" type="file" accept="application/json,.json" hidden />
       </aside>
       <main>
         <div class="page-heading">
           <div>
-            <h1 id="page-title">Valorisation</h1>
-            <p id="page-description">Prix de la position et couverture en actions</p>
+            <h1 id="page-title">Pricing</h1>
+            <p id="page-description">Position value and equity hedge</p>
           </div>
           <label class="engine-picker"
-            >Moteur<select id="engine">
+            >Engine<select id="engine">
               <option value="python">Python</option>
               <option value="vba">VBA / Excel</option>
-              <option value="both">Python et VBA</option>
+              <option value="both">Python and VBA</option>
             </select></label
           >
         </div>
         <section class="positions" aria-labelledby="position-title">
           <div class="section-heading">
             <h2 id="position-title">Position</h2>
-            <button class="secondary" id="add-leg">Ajouter un instrument</button>
+            <button class="secondary" id="add-leg">Add a leg</button>
           </div>
           <div class="table-scroll">
             <table class="instruments">
               <thead>
                 <tr>
-                  <th>Produit</th>
-                  <th>Exercice</th>
-                  <th>Strike / barrière</th>
-                  <th>Échéance</th>
-                  <th>Quantité</th>
-                  <th>Multiplicateur</th>
+                  <th>Product</th>
+                  <th>Exercise</th>
+                  <th>Strike / barrier</th>
+                  <th>Expiry</th>
+                  <th>Quantity</th>
+                  <th>Multiplier</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="legs"></tbody>
             </table>
           </div>
-          <p class="position-note">Quantité positive : achat · Quantité négative : vente</p>
+          <p class="position-note">Positive quantity buys a leg. Negative quantity sells it.</p>
         </section>
         <section id="page-options"></section>
         <div class="actionbar">
           <p id="run-hint"></p>
-          <button id="run" class="primary">Calculer</button>
+          <button id="run" class="primary">Calculationate</button>
         </div>
         <div id="progress" class="progress" role="status" hidden>
           <span class="spinner"></span><span id="progress-message"></span><span id="elapsed"></span>
         </div>
         <div id="error" class="notice error" role="alert" hidden></div>
-        <div id="stale" class="notice" hidden>Les paramètres ont changé. Relancez le calcul.</div>
+        <div id="stale" class="notice" hidden>The inputs have changed. Run the calculation again.</div>
         <section id="results" aria-live="polite">
-          <p class="empty-state">Renseignez les paramètres, puis cliquez sur Calculer.</p>
+          <p class="empty-state">Choose the contract terms and run the calculation.</p>
         </section>
         <footer>
-          <span id="result-note">Montants en euros</span
-          ><button id="export-results" class="text-button" disabled>Exporter les résultats</button>
+          <span id="result-note">Values in euros</span
+          ><button id="export-results" class="text-button" disabled>Export results</button>
         </footer>
       </main>
     </div>

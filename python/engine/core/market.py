@@ -1,4 +1,4 @@
-"""Données de marché saisies par l'utilisateur."""
+"""Market data entered by the user."""
 
 import math
 
@@ -13,22 +13,21 @@ class Market:
         div_amount: float = 0.0,
         t_ex_div: float | None = None,
     ) -> None:
-        """On rassemble les données de marché et on vérifie leurs valeurs"""
+        """Collecting market data and verifying their values"""
 
         self.s0 = s0
         self.int_rate = int_rate
         self.volatility = volatility
-        # On distingue un rendement en % d'un dividende versé à une date précise
+        # A % return is distinguished from a dividend paid on a specific date.
         self.div_yield = div_yield
         self.div_amount = div_amount
         self.t_ex_div = t_ex_div
         self._validate()
 
     def _validate(self) -> None:
-        """On contrôle la cohérence du spot, de la volatilité et du dividende"""
-        values = (self.s0, self.int_rate, self.volatility,
-                  self.div_yield, self.div_amount)
-        # On arrête le calcul si une entrée contient l'infini ou une valeur NaN
+        """Monitoring spot, volatility and dividend consistency"""
+        values = (self.s0, self.int_rate, self.volatility, self.div_yield, self.div_amount)
+        # Stop calculation if an input contains infinity or a value NaN
         if not all(math.isfinite(value) for value in values):
             raise ValueError("Les données de marché doivent être finies.")
 

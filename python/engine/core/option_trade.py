@@ -1,4 +1,4 @@
-"""Contrat d'option, indépendant de la construction de l'arbre."""
+"""Option contract, independent of tree construction."""
 
 import math
 
@@ -11,7 +11,7 @@ class OptionTrade:
         is_call: bool = True,
         is_american: bool = False,
     ) -> None:
-        """On prépare le contrat avec son strike, sa maturité et son type d’exercice"""
+        """We prepare the contract with its strike, maturity and type of exercise"""
         if not math.isfinite(strike) or strike < 0:
             raise ValueError("Le strike doit être positif ou nul et fini.")
         if not math.isfinite(maturity) or maturity <= 0:
@@ -22,7 +22,7 @@ class OptionTrade:
         self.is_american = is_american
 
     def payoff(self, spot_price: float) -> float:
-        """On calcule le paiement du call ou du put au prix indiqué"""
+        """Payment of the call or put is calculated at the price indicated"""
 
         if self.is_call:
             return max(spot_price - self.strike, 0.0)
@@ -30,8 +30,8 @@ class OptionTrade:
         return max(self.strike - spot_price, 0.0)
 
     def node_value(self, continuation_value: float, spot_price: float) -> float:
-        """On compare la continuation à l’exercice immédiat pour une option américaine"""
-        # On compare ce que rapporte l'exercice avec la valeur obtenue en attendant
+        """The continuation is compared to the immediate exercise for an American option"""
+        # Comparisons are made between the exercise and the value obtained in the meantime
         if self.is_american:
             return max(continuation_value, self.payoff(spot_price))
 

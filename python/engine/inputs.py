@@ -10,7 +10,7 @@ Request = dict[str, Any]
 
 
 def number(value: Any, name: str) -> float:
-    """On refuse les valeurs non numériques avant de construire le marché"""
+    """We refuse non-digital values before building the market"""
     if isinstance(value, bool):
         raise ValueError(f"{name} doit être un nombre")
     try:
@@ -23,7 +23,7 @@ def number(value: Any, name: str) -> float:
 
 
 def calendar(value: Any, name: str) -> date:
-    """On lit les dates au format ISO pour éviter les ambiguïtés jour et mois"""
+    """Dates are read in ISO format to avoid ambiguities day and month"""
     try:
         return date.fromisoformat(str(value))
     except ValueError as error:
@@ -31,12 +31,14 @@ def calendar(value: Any, name: str) -> date:
 
 
 def normalize_market(raw: Request, valuation: date, basis: int, elapsed: float) -> Request:
-    """On distingue le rendement continu du dividende fixe daté"""
+    """The continuous return is distinguished from the fixed dividend dated"""
     result = {key: number(raw.get(key), key) for key in ("spot", "volatility", "rate")}
     for key in ("yield_rate", "dividend"):
         result[key] = number(raw.get(key, 0), key)
     if result["spot"] <= 0 or result["volatility"] <= 0 or result["dividend"] < 0:
-        raise ValueError("Il faut un spot et une volatilité positifs, et un dividende positif ou nul")
+        raise ValueError(
+            "Il faut un spot et une volatilité positifs, et un dividende positif ou nul"
+        )
     result["dividend_date"] = raw.get("dividend_date") or None
     result["_dividend_time"] = None
     if result["dividend"]:
@@ -49,7 +51,7 @@ def normalize_market(raw: Request, valuation: date, basis: int, elapsed: float) 
 
 
 def normalize_grid(raw: Request) -> Request:
-    """On vérifie le nombre de pas et le seuil de pruning"""
+    """Check the number of steps and the threshold of pruning"""
     steps = number(raw.get("steps", 200), "Le nombre de pas")
     if steps < 1 or steps != int(steps):
         raise ValueError("Le nombre de pas doit être un entier positif")
@@ -63,7 +65,7 @@ def normalize_grid(raw: Request) -> Request:
 
 
 def normalize_leg(raw: Request, valuation: date, basis: int, elapsed: float) -> Request:
-    """On conserve les quantités signées et les échéances propres à chaque ligne"""
+    """The signed quantities and expiries for each line shall be retained."""
     result = copy.deepcopy(raw)
     if result.get("kind") not in KINDS:
         raise ValueError("Type de produit inconnu")
@@ -72,7 +74,9 @@ def normalize_leg(raw: Request, valuation: date, basis: int, elapsed: float) -> 
     for key, default in (("strike", 0), ("quantity", 1), ("multiplier", 1), ("payout", 1)):
         result[key] = number(raw.get(key, default), key)
     if result["strike"] < 0 or result["multiplier"] <= 0 or result["payout"] < 0:
-        raise ValueError("Strike et montant doivent être positifs ou nuls, multiplicateur strictement positif")
+        raise ValueError(
+            "Strike et montant doivent être positifs ou nuls, multiplicateur strictement positif"
+        )
     result["american"] = raw.get("american", False)
     if not isinstance(result["american"], bool):
         raise ValueError("Le mode américain doit être un booléen")
@@ -86,8 +90,10 @@ def normalize_leg(raw: Request, valuation: date, basis: int, elapsed: float) -> 
     return result
 
 
-def normalize_legs(raw: list[Request], valuation: date, basis: int, elapsed: float, spot: float) -> list[Request]:
-    """On prépare les instruments en conservant les paiements one-touch déjà acquis"""
+def normalize_legs(
+    raw: list[Request], valuation: date, basis: int, elapsed: float, spot: float
+) -> list[Request]:
+    """The instruments are prepared by keeping the one-touch payments already acquired"""
     result = []
     for source in raw:
         leg = copy.deepcopy(source)
@@ -101,9 +107,11 @@ def normalize_legs(raw: list[Request], valuation: date, basis: int, elapsed: flo
 
 
 def validate_product(leg: Request) -> None:
-    """On vérifie les choix d’exercice et d’observation de barrière du produit"""
+    """The choice of exercise and barrier observation of the product is checked"""
     if leg["kind"] in ("digital_call", "digital_put", "one_touch_up") and leg["american"]:
-        raise ValueError("Le mode américain concerne les options vanilles et les payoffs personnalisés")
+        raise ValueError(
+            "Le mode américain concerne les options vanilles et les payoffs personnalisés"
+        )
     leg["monitoring"] = leg.get("monitoring", "continuous")
     if leg["monitoring"] not in ("continuous", "grid"):
         raise ValueError("Observation de barrière inconnue")
@@ -112,7 +120,7 @@ def validate_product(leg: Request) -> None:
 
 
 def normalize_bumps(raw: Request, spot: float) -> Request:
-    """On prépare et on vérifie les variations utilisées pour les différences finies"""
+    """Variations used for finite differences are prepared and verified"""
     defaults = {"spot": spot * 0.02, "volatility": 0.005, "rate": 0.001, "days": 1.0}
     result = {key: number(raw.get(key, value), key) for key, value in defaults.items()}
     if any(value <= 0 for value in result.values()):
@@ -121,7 +129,7 @@ def normalize_bumps(raw: Request, spot: float) -> Request:
 
 
 def normalize_request(raw: Request) -> Request:
-    """On vérifie et on normalise une copie des paramètres du calcul"""
+    """A copy of the calculation parameters is checked and normalized."""
     result = copy.deepcopy(raw)
     valuation = calendar(raw.get("valuation_date"), "La date de valorisation")
     basis = number(raw.get("day_basis", 365), "La base annuelle")
@@ -133,7 +141,9 @@ def normalize_request(raw: Request) -> Request:
     result.update(day_basis=int(basis), elapsed_days=elapsed, valuation_date=valuation.isoformat())
     result["market"] = normalize_market(raw.get("market", {}), valuation, int(basis), elapsed)
     result["grid"] = normalize_grid(raw.get("grid", {}))
-    result["legs"] = normalize_legs(raw.get("legs", []), valuation, int(basis), elapsed, result["market"]["spot"])
+    result["legs"] = normalize_legs(
+        raw.get("legs", []), valuation, int(basis), elapsed, result["market"]["spot"]
+    )
     if not result["legs"]:
         raise ValueError("Ajouter au moins un instrument")
     result["bumps"] = normalize_bumps(raw.get("bumps", {}), result["market"]["spot"])
